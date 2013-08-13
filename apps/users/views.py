@@ -7,12 +7,35 @@ from django.contrib.auth import authenticate, login, logout
 from apps.bands.models import Band, UserHasBand
 from apps.events.models import Event 
 
+from apps.home.views import LoginForm
+
 def index(request):
     my_data = {}
     return render_to_response( 'users/index.html', my_data, context_instance=RequestContext(request) )
 
-# try to login the user
 def do_login(request):
+    if request.method == 'POST':
+        form = LoginForm(request.POST)
+        if form.is_valid():
+            email = form.cleaned_data['email']
+            password = form.cleaned_data['password']   
+        else:
+            email =''
+            password = ''
+
+    user = authenticate( username=email, password=password )
+  
+    if user is not None:
+        if user.is_active:
+            login(request,user)
+            return HttpResponseRedirect('/dashboard/')
+        else:
+            return HttpResponseRedirect('/')
+    else:
+        return HttpResponseRedirect('/')
+
+# try to login the user
+def doo_login(request):
     email    = request.POST.get( 'login_email', '' )
     password = request.POST.get( 'login_password', '' )   
     user = authenticate( username=email, password=password )
@@ -29,17 +52,27 @@ def do_login(request):
 # try to logout the user
 def do_logout(request):
     logout(request)
-    return render_to_response( "home.html", context_instance=RequestContext(request) )
+    return HttpResponseRedirect('/')
     
 def new(request):
     my_data = {}
     return render_to_response( 'users/new.html', my_data, context_instance=RequestContext(request) )
 
 def create(request):
-    name = request.POST.get( 'name', '' )
-    email = request.POST.get( 'email', '' )
-    password = request.POST.get( 'password', '' )
-    password_confirm = request.POST.get( 'password_confirm', '' )
+    if request.method == 'POST':
+        form = RegisterForm(request.POST)
+        if form.is_valid():
+            name    = form.cleaned_data['name']
+            email   = form.cleaned_data['email']
+            password = form.cleaned_data['password'] 
+            password2 = form.cleaned_data['password2']  
+        else:
+            email =''
+            password = ''
+    #name = request.POST.get( 'name', '' )
+    #email = request.POST.get( 'email', '' )
+    #password = request.POST.get( 'password', '' )
+    #password_confirm = request.POST.get( 'password_confirm', '' )
     user = User.objects.create_user( email, email, password )
     user.first_name = name
     user.save()
